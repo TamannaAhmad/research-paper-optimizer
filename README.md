@@ -1,6 +1,6 @@
-# research-paper-analyser
+# Research Paper Analyser
 
-##Setting up Virtual Environment:
+## Setting up Virtual Environment:
 Python Version: 3.11.0
 
 python -m venv venv
