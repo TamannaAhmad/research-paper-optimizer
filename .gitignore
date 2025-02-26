@@ -1,4 +1,4 @@
 .ipynb_checkpoints
-
+.venv
 profile_default/
 ipython_config.py
