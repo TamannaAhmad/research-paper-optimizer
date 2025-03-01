@@ -431,16 +431,40 @@ if __name__ == "__main__":
         project_dir = os.getcwd()
     
     # Get a list of all PDFs in the dataset directory
-    dataset_dir = os.path.join(project_dir, "training dataset")
+    # Try multiple possible directory names
+    possible_dataset_dirs = [
+        os.path.join(project_dir, "training_dataset"),
+        os.path.join(project_dir, "training dataset"),
+        os.path.join(project_dir, "dataset"),
+        os.path.join(project_dir, "data")
+    ]
     
-    if not os.path.exists(dataset_dir):
-        os.makedirs(dataset_dir, exist_ok=True)
-        print(f"Created dataset directory at {dataset_dir}")
+    dataset_dir = None
+    for dir_path in possible_dataset_dirs:
+        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+            dataset_dir = dir_path
+            print(f"Found dataset directory: {dataset_dir}")
+            break
     
-    pdf_files = [os.path.join(dataset_dir, f) for f in os.listdir(dataset_dir) if f.endswith('.pdf')]
+    if not dataset_dir:
+        # Ask the user for the correct dataset path
+        dataset_dir = input("Dataset directory not found. Please enter the full path to your dataset directory: ").strip()
+        
+        if not dataset_dir or not os.path.exists(dataset_dir):
+            dataset_dir = os.path.join(project_dir, "training_dataset")
+            os.makedirs(dataset_dir, exist_ok=True)
+            print(f"Created dataset directory at {dataset_dir}")
+            print("Please add PDF files to this directory and run the script again.")
+            exit(1)
+    
+    # CORRECTION: Case-insensitive check for PDF extensions
+    pdf_files = [os.path.join(dataset_dir, f) for f in os.listdir(dataset_dir) 
+                if f.lower().endswith(('.pdf', '.PDF'))]
     
     if not pdf_files:
-        raise FileNotFoundError(f"No PDF files found in {dataset_dir}")
+        print(f"No PDF files found in {dataset_dir}")
+        print("Please add PDF files to this directory and run the script again.")
+        exit(1)
     
     # Ask for the number of files to use for training
     while True:
