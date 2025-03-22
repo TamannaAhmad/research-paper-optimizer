@@ -16,7 +16,7 @@ def download_nltk_resources():
         'punkt',
         'wordnet',
         'stopwords',
-        'punkt_tab'  # This was missing
+        'punkt_tab' 
     ]
     
     for resource in resources:
