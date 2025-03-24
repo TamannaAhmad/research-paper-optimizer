@@ -5,3 +5,4 @@ ipython_config.py
 results
 /datasets/
 citation_validation_report.json
+/__pycache__/*

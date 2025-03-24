@@ -5,7 +5,7 @@ pdfplumber
 spaCy
 NLTK
 torch
-fitz
+pymupdf
 transformers
 datasets
 scikit-learn

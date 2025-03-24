@@ -14,6 +14,7 @@ from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from pathlib import Path
 
 # Download ALL required NLTK resources
 def download_nltk_resources():
@@ -213,7 +214,7 @@ def load_and_preprocess_dataset(file_paths):
     all_texts = []
     for i, file_path in enumerate(file_paths):
         try:
-            print(f"Processing file {i+1}/{len(file_paths)}: {os.path.basename(file_path)}")
+            print(f"Processing file {i+1}/{len(file_paths)}: {Path(file_path).name}")
             text = load_dataset_from_pdf(file_path)
             if text:
                 all_texts.append(text)
@@ -268,10 +269,11 @@ def fine_tune_model(train_dataset, val_dataset, output_dir):
     trainer.train()
     
     # Save the final model
-    trainer.save_model(os.path.join(output_dir, "final_model"))
+    final_model_path = Path(output_dir) / "final_model"
+    trainer.save_model(final_model_path)
     
     # Save tokenizer alongside the model for easier evaluation
-    tokenizer.save_pretrained(os.path.join(output_dir, "final_model"))
+    tokenizer.save_pretrained(final_model_path)
     
     return model
 
@@ -406,8 +408,9 @@ def save_validation_results(model, val_dataset, output_dir):
             print(f"Error processing example {idx}: {e}")
     
     # Save results
+    results_path = Path(output_dir) / 'validation_results.csv'
     results_df = pd.DataFrame(results)
-    results_df.to_csv(os.path.join(output_dir, 'validation_results.csv'), index=False)
+    results_df.to_csv(results_path, index=False)
     
     # Calculate and print averages
     avg_scores = {
@@ -425,41 +428,44 @@ def save_validation_results(model, val_dataset, output_dir):
 
 # Main function
 if __name__ == "__main__":
-    # Use absolute file paths
+    # Use Path for more consistent path handling across platforms
     project_dir = input("Enter the path to your project directory (default: current directory): ").strip()
     if not project_dir:
-        project_dir = os.getcwd()
+        project_dir = Path.cwd()
+    else:
+        project_dir = Path(project_dir)
     
     # Get a list of all PDFs in the dataset directory
     # Try multiple possible directory names
     possible_dataset_dirs = [
-        os.path.join(project_dir, "training_dataset"),
-        os.path.join(project_dir, "training dataset"),
-        os.path.join(project_dir, "dataset"),
-        os.path.join(project_dir, "data")
+        project_dir / "training_dataset",
+        project_dir / "training dataset",
+        project_dir / "dataset",
+        project_dir / "data"
     ]
     
     dataset_dir = None
     for dir_path in possible_dataset_dirs:
-        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+        if dir_path.exists() and dir_path.is_dir():
             dataset_dir = dir_path
             print(f"Found dataset directory: {dataset_dir}")
             break
     
     if not dataset_dir:
         # Ask the user for the correct dataset path
-        dataset_dir = input("Dataset directory not found. Please enter the full path to your dataset directory: ").strip()
+        dataset_dir_input = input("Dataset directory not found. Please enter the full path to your dataset directory: ").strip()
         
-        if not dataset_dir or not os.path.exists(dataset_dir):
-            dataset_dir = os.path.join(project_dir, "training_dataset")
-            os.makedirs(dataset_dir, exist_ok=True)
+        if not dataset_dir_input or not Path(dataset_dir_input).exists():
+            dataset_dir = project_dir / "training_dataset"
+            dataset_dir.mkdir(parents=True, exist_ok=True)
             print(f"Created dataset directory at {dataset_dir}")
             print("Please add PDF files to this directory and run the script again.")
             exit(1)
+        else:
+            dataset_dir = Path(dataset_dir_input)
     
     # CORRECTION: Case-insensitive check for PDF extensions
-    pdf_files = [os.path.join(dataset_dir, f) for f in os.listdir(dataset_dir) 
-                if f.lower().endswith(('.pdf', '.PDF'))]
+    pdf_files = [file_path for file_path in dataset_dir.glob("*.[pP][dD][fF]")]
     
     if not pdf_files:
         print(f"No PDF files found in {dataset_dir}")
@@ -483,15 +489,15 @@ if __name__ == "__main__":
     
     pdf_files = pdf_files[:max_files]
     
-    output_dir = os.path.join(project_dir, "results")
+    output_dir = project_dir / "results"
     
     # Debug information
     print(f"Found {len(pdf_files)} PDF files for training")
-    print(f"First few files: {[os.path.basename(f) for f in pdf_files[:3]]}")
+    print(f"First few files: {[file_path.name for file_path in pdf_files[:3]]}")
     print(f"Output directory: {output_dir}")
     
     # Ensure output directory exists
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     print("Loading and preprocessing data...")
     # Load datasets
@@ -522,11 +528,12 @@ if __name__ == "__main__":
     print("Saving validation results...")
     save_validation_results(model, val_dataset, output_dir)
     
-    print(f"Done! Model saved to {os.path.join(output_dir, 'final_model')}")
+    final_model_path = output_dir / 'final_model'
+    print(f"Done! Model saved to {final_model_path}")
     
     # Create a CSV file for test data
-    test_data_path = os.path.join(project_dir, "test_data.csv")
-    if not os.path.exists(test_data_path):
+    test_data_path = project_dir / "test_data.csv"
+    if not test_data_path.exists():
         print(f"Creating test data file at {test_data_path}")
         # Extract a few examples from the validation set
         test_examples = val_dataset.select(range(min(5, len(val_dataset))))
