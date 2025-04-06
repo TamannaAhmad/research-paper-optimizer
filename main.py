@@ -2,11 +2,13 @@ import streamlit as st
 import tempfile
 import os
 import torch
+import PyPDF2
 import nltk
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 from pathlib import Path
+import import_ipynb
 
 # Set page config as the first Streamlit command
 st.set_page_config(
@@ -18,7 +20,10 @@ st.set_page_config(
 
 # Import modules from separate files after setting page config
 from citation_validator import run_citation_validator
+from image_caption_generator import run_image_captioning
 from abstract_generator import run_abstract_generator
+from quality_assurance import run_quality_assurance
+from relevance_checker import run_relevance_checker
 
 # Initialize NLTK resources
 @st.cache_resource
@@ -41,7 +46,7 @@ def initialize_nltk():
 @st.cache_resource
 def load_model(model_path):
     try:
-        st.info(f"Attempting to load model from: {model_path}")
+        # st.info(f"Attempting to load model from: {model_path}")
         tokenizer = T5Tokenizer.from_pretrained(model_path)
         model = T5ForConditionalGeneration.from_pretrained(model_path)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,12 +77,44 @@ def find_valid_model_path():
             return str(path_obj.absolute())
     return None
 
+def display_home():
+    st.header("Welcome to the Research Paper Optimizer Tool")
+    st.markdown("This application helps researchers in their research paper writing process using the following tools:")
+    # Display feature cards
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Abstract Generator")
+        st.write("Generate concise summaries of research papers, useful for writing abstracts.")
+
+        st.subheader("Image Captioning")
+        st.write("Generates relevant captions for scientific figures.")
+
+        st.subheader("Citation Validator")
+        st.write("Checks if references are correctly cited and marked within the text.")
+    
+    with col2:
+        st.subheader("Quality Assurance")
+        st.write("Ensures the paper's contents are logically coherent and grammatically correct.")
+
+        st.subheader("Relevance Checker")
+        st.write("Determines if a reference is relevant to your research paper.")
+    
+    # Instructions
+    st.header("How to Use")
+    st.write("""
+    1. Upload a PDF research paper using the file uploader in the sidebar
+    2. Select the tool you want to use from the navigation menu
+    3. Configure the tool settings as needed
+    4. View the results
+    """)
+
 def main():
     st.title("Research Paper Optimization Tools")
 
     # Initialize NLTK resources
     lemmatizer, stop_words = initialize_nltk()
-
+    
     # Load model
     model_path = find_valid_model_path()
     if model_path:
@@ -95,18 +132,27 @@ def main():
                 return
         else:
             return
-
+    
     # Create tabs for different tools
-    tab1, tab2 = st.tabs(["Abstract Generator", "Citation Validator"])
+    tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Abstract Generator", "Image Captioning", "Citation Validator", "Quality Assurance", "Relevance Checker"])
 
     # File uploader in sidebar
+    st.sidebar.header("Upload File")
     uploaded_file = st.sidebar.file_uploader("Upload a research paper (PDF)", type="pdf")
 
     # Pass resources and file to tools
+    with tab0:
+        display_home()
     with tab1:
         run_abstract_generator(model, tokenizer, device, model_path, lemmatizer, stop_words, uploaded_file=uploaded_file)
     with tab2:
-        run_citation_validator(uploaded_file=uploaded_file)
+        run_image_captioning(uploaded_file)
+    with tab3:
+        run_citation_validator(uploaded_file)
+    with tab4:
+        run_quality_assurance(uploaded_file)
+    with tab5:
+        run_relevance_checker(uploaded_file)
 
     # Display file details if uploaded
     if uploaded_file is not None:

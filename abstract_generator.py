@@ -160,7 +160,7 @@ def get_download_link(text, filename, label="Download Results"):
     return href
 
 def run_abstract_generator(model, tokenizer, device, model_path, lemmatizer, stop_words, uploaded_file=None):
-    st.title("Research Paper Abstract Generator")
+    st.title("Abstract Generator")
     st.markdown("""
     This tool automatically generates high-quality abstracts for research papers using a fine-tuned T5 model.
     Upload your PDF files, and get concise, informative abstracts in seconds.

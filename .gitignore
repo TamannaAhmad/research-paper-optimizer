@@ -6,3 +6,5 @@ results
 /datasets/
 citation_validation_report.json
 /__pycache__/*
+*.pdf
+extracted_figures/
