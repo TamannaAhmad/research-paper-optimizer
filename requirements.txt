@@ -17,3 +17,6 @@ requests
 PyPDF2
 pathlib
 streamlit
+torchvision
+import-ipynb
+sentencepiece

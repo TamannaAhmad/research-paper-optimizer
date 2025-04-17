@@ -293,6 +293,27 @@ def run_citation_validator(uploaded_file=None):
     - 🔄 Consistency between in-text citations and references
     """)
 
+    with st.expander("About this tool"):
+        st.markdown("""
+        ### Academic Citation Validator
+        This tool analyzes academic papers to validate citations and references by:
+        1. **Extracting text** from PDF documents
+        2. **Identifying** the references section
+        3. **Parsing** individual citation entries
+        4. **Detecting** in-text citations and matching them with references
+        5. **Validating** DOIs and citation existence in academic databases
+        6. **Checking** citation formatting according to common styles
+        #### Supported Citation Styles
+        - APA
+        - MLA
+        - Chicago
+        - Harvard
+        - IEEE
+        - Numbered references
+        #### How It Works
+        The tool uses regular expressions and API calls to academic databases like CrossRef.
+        """)
+
     validator = CitationValidator()
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
@@ -355,26 +376,7 @@ def run_citation_validator(uploaded_file=None):
                     st.error("No citations could be extracted and validated.")
             else:
                 st.error("Could not extract text from the PDF.")
-    with st.expander("About this tool"):
-        st.markdown("""
-        ### Academic Citation Validator
-        This tool analyzes academic papers to validate citations and references by:
-        1. **Extracting text** from PDF documents
-        2. **Identifying** the references section
-        3. **Parsing** individual citation entries
-        4. **Detecting** in-text citations and matching them with references
-        5. **Validating** DOIs and citation existence in academic databases
-        6. **Checking** citation formatting according to common styles
-        #### Supported Citation Styles
-        - APA
-        - MLA
-        - Chicago
-        - Harvard
-        - IEEE
-        - Numbered references
-        #### How It Works
-        The tool uses regular expressions and API calls to academic databases like CrossRef.
-        """)
+    
 
 def main():
     run_citation_validator()
