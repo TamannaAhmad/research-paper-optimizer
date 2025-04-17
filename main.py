@@ -61,6 +61,7 @@ def find_valid_model_path():
     POTENTIAL_MODEL_PATHS = [
         os.environ.get("MODEL_PATH"),
         r"research-paper-analyser/results/final_model",
+        "./models/final_model",
         "./fine_tuned_model",
         "./model",
         "./results/final_model",
@@ -121,7 +122,7 @@ def main():
         model, tokenizer, device = load_model(model_path)
         if model is None:
             st.error("Failed to load the T5 model. Please ensure the model files are in the specified path.")
-            return
+            
     else:
         st.error("No valid model path found. Please specify the path to your fine-tuned T5 model.")
         model_path = st.text_input("Enter model path manually:", "")
