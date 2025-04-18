@@ -2,25 +2,40 @@ import os
 import torch
 import io
 from PIL import Image
-from torchvision import transforms
-import glob
 import pymupdf
-import tkinter as tk
-from tkinter import filedialog
 import streamlit as st
 from transformers import BlipProcessor, BlipForConditionalGeneration
+import requests
+from io import BytesIO
 
-def load_trained_model(model_path, device):
-    # Load the model architecture first
-    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
-    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
+def download_model_weights(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad responses
+        return BytesIO(response.content)
+    except Exception as e:
+        st.error(f"Error downloading model weights: {e}")
+        return None
+
+def generate_caption(model_and_processor, image_path, device):
+    model, processor = model_and_processor
+    image = Image.open(image_path).convert('RGB')
     
-    # Then load your trained weights
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    model.to(device)
-    model.eval()
+    # Use the BLIP processor
+    inputs = processor(images=image, return_tensors="pt").to(device)
     
-    return model, processor
+    with torch.no_grad():
+        generated_ids = model.generate(
+            pixel_values=inputs["pixel_values"],
+            min_length=20,
+            num_beams=5,
+            no_repeat_ngram_size=2,
+            temperature=1.2,
+            do_sample=True
+        )
+        generated_caption = processor.batch_decode(generated_ids, skip_special_tokens=True)
+    
+    return generated_caption[0] 
 
 def should_merge_images(rect1, rect2, proximity_threshold=50):
     # Determine if two image rectangles should be considered part of the same figure
@@ -192,26 +207,6 @@ def extract_images(file_path, output_base_dir, progress_bar = None):
     st.success(f"Processed {file_path}: {total_figures} figures found")
     return extracted_image_paths
 
-def generate_caption(model_and_processor, image_path, device):
-    model, processor = model_and_processor
-    image = Image.open(image_path).convert('RGB')
-    
-    # Use the BLIP processor instead of manual transforms
-    inputs = processor(images=image, return_tensors="pt").to(device)
-    
-    with torch.no_grad():
-        generated_ids = model.generate(
-            pixel_values=inputs["pixel_values"],
-            min_length=20,
-            num_beams=5,
-            no_repeat_ngram_size=2,
-            temperature=1.2,
-            do_sample=True
-        )
-        generated_caption = processor.batch_decode(generated_ids, skip_special_tokens=True)
-    
-    return generated_caption[0] 
-
 def run_image_captioning(uploaded_file = None):
     st.title("Image Caption Generator")
     st.markdown("Extract images from your PDF file to generate captions")
@@ -262,14 +257,9 @@ def run_image_captioning(uploaded_file = None):
     st.subheader("Generate Captions")
     
     if 'extracted_image_paths' in st.session_state:
-        model_path = "./models/best_blip_captioning_model.pth"
+        model_weights_url = "https://huggingface.co/TamannaAhmad/image_captioning_BLIP_model/resolve/main/best_blip_captioning_model.pth"
         
         if st.button("Generate Captions"):
-            # Check if model exists
-            if not os.path.exists(model_path):
-                st.error(f"Model file not found at {model_path}. Please make sure the model exists.")
-                return
-                
             # Set device
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             st.info(f"Using device: {device}")
@@ -277,10 +267,28 @@ def run_image_captioning(uploaded_file = None):
             # Load model
             with st.spinner("Loading model..."):
                 try:
-                    model_and_processor = load_trained_model(model_path, device)
-                    st.success("Model loaded successfully!")
+                    # Load base BLIP model and processor
+                    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
+                    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
+                    
+                    # Download and load your trained weights
+                    weights_buffer = download_model_weights(model_weights_url)
+                    if weights_buffer:
+                        # Load model weights from buffer
+                        state_dict = torch.load(weights_buffer, map_location=device)
+                        model.load_state_dict(state_dict)
+                        model.to(device)
+                        model.eval()
+                        
+                        model_and_processor = (model, processor)
+                        st.success("Model loaded successfully!")
+                    else:
+                        st.error("Failed to download model weights")
+                        return
                 except Exception as e:
                     st.error(f"Error loading model: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
                     return
             
             # Generate captions
