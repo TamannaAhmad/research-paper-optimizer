@@ -46,21 +46,44 @@ def initialize_nltk():
 @st.cache_resource
 def load_model(model_path):
     try:
-        # st.info(f"Attempting to load model from: {model_path}")
+        # Check if model path is a Hugging Face model ID (contains '/')
+        is_huggingface_model = '/' in model_path
+        
+        st.info(f"Loading model from: {'Hugging Face' if is_huggingface_model else 'local path'} - {model_path}")
+        
+        # Load tokenizer and model
         tokenizer = T5Tokenizer.from_pretrained(model_path)
         model = T5ForConditionalGeneration.from_pretrained(model_path)
+        
+        # Move model to appropriate device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = model.to(device)
+        
+        st.success(f"Model successfully loaded from {model_path}!")
         return model, tokenizer, device
+        
     except Exception as e:
         st.error(f"Error loading model from {model_path}: {e}")
         return None, None, None
 
 # Find a valid model path
 def find_valid_model_path():
-    POTENTIAL_MODEL_PATHS = [
-        os.environ.get("MODEL_PATH"),
-        r"research-paper-analyser/results/final_model",
+    # Check environment variable first
+    env_path = os.environ.get("MODEL_PATH")
+    if env_path:
+        path_obj = Path(env_path)
+        if path_obj.exists() and ((path_obj / "pytorch_model.bin").exists() or (path_obj / "config.json").exists()):
+            return str(path_obj.absolute())
+    
+    # If Hugging Face model is specified, prioritize it
+    hf_model = "srii19/abstract_generator_model"
+    
+    # Check if the model is a Hugging Face model by looking for '/'
+    if '/' in hf_model:
+        return hf_model  # Return the HF model ID directly
+    
+    # Check local paths as fallback
+    local_paths = [
         "./models/final_model",
         "./fine_tuned_model",
         "./model",
@@ -71,11 +94,16 @@ def find_valid_model_path():
         "./output/model",
         "./checkpoints/final",
     ]
-    paths_to_check = [p for p in POTENTIAL_MODEL_PATHS if p is not None]
-    for path in paths_to_check:
+    
+    for path in local_paths:
         path_obj = Path(path)
         if path_obj.exists() and ((path_obj / "pytorch_model.bin").exists() or (path_obj / "config.json").exists()):
             return str(path_obj.absolute())
+    
+    # If no valid path found but we have a HF model, return that
+    if hf_model:
+        return hf_model
+        
     return None
 
 def display_home():
@@ -87,17 +115,14 @@ def display_home():
     with col1:
         st.subheader("Abstract Generator")
         st.write("Generate concise summaries of research papers, useful for writing abstracts.")
-
         st.subheader("Image Captioning")
         st.write("Generates relevant captions for scientific figures.")
-
         st.subheader("Citation Validator")
         st.write("Checks if references are correctly cited and marked within the text.")
     
     with col2:
         st.subheader("Quality Assurance")
         st.write("Ensures the paper's contents are logically coherent and grammatically correct.")
-
         st.subheader("Relevance Checker")
         st.write("Determines if a reference is relevant to your research paper.")
     
@@ -112,7 +137,6 @@ def display_home():
 
 def main():
     st.title("Research Paper Optimization Tools")
-
     # Initialize NLTK resources
     lemmatizer, stop_words = initialize_nltk()
     
@@ -136,11 +160,11 @@ def main():
     
     # Create tabs for different tools
     tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Abstract Generator", "Image Captioning", "Citation Validator", "Quality Assurance", "Relevance Checker"])
-
+    
     # File uploader in sidebar
     st.sidebar.header("Upload File")
     uploaded_file = st.sidebar.file_uploader("Upload a research paper (PDF)", type="pdf")
-
+    
     # Pass resources and file to tools
     with tab0:
         display_home()
@@ -154,7 +178,7 @@ def main():
         run_quality_assurance(uploaded_file)
     with tab5:
         run_relevance_checker(uploaded_file)
-
+    
     # Display file details if uploaded
     if uploaded_file is not None:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
@@ -165,10 +189,10 @@ def main():
         for key, value in file_details.items():
             st.sidebar.write(f"- {key}: {value}")
         os.unlink(pdf_path)
-
+    
     # Footer
     st.markdown("---")
-    st.markdown("© 2025 Academic Paper Tools")
+    st.markdown("© 2025 Research Paper Optimizer")
 
 if __name__ == "__main__":
     main()
