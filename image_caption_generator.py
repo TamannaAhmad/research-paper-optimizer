@@ -204,10 +204,12 @@ def extract_images(file_path, output_base_dir, progress_bar = None):
                 with open(image_name, "wb") as image_file:
                     image_file.write(image_bytes)
                 extracted_image_paths.append(image_name)
-    st.success(f"Processed {file_path}: {total_figures} figures found")
+    st.success(f"Processed file: {total_figures} figures found")
     return extracted_image_paths
 
 def run_image_captioning(uploaded_file = None):
+    st.config.set_option('client.showErrorDetails', False)
+    st.config.set_option('server.enableStaticServing', True)
     st.title("Image Caption Generator")
     st.markdown("Extract images from your PDF file to generate captions")
 

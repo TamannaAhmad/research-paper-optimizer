@@ -165,7 +165,6 @@ def run_abstract_generator(model, tokenizer, device, model_path, lemmatizer, sto
     This tool automatically generates high-quality abstracts for research papers using a fine-tuned T5 model.
     Upload your PDF files, and get concise, informative abstracts in seconds.
     """)
-    st.info(f"Using model from: {model_path} on {device}")
 
     if uploaded_file is None:
         uploaded_files = st.file_uploader("Choose PDF files", type=["pdf"], accept_multiple_files=True)
@@ -211,7 +210,6 @@ def run_abstract_generator(model, tokenizer, device, model_path, lemmatizer, sto
                 if result['status'] == "Success":
                     st.markdown("**Generated Abstract:**")
                     st.markdown(result['abstract'])
-                    st.code(result['abstract'], language="text")
                 else:
                     st.error(result['status'])
             download_text += f"File: {result['filename']}\nStatus: {result['status']}\nGenerated Abstract:\n{result['abstract']}\n\n{'='*70}\n\n"

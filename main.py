@@ -17,6 +17,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+st.config.set_option('client.showErrorDetails', False)
+st.config.set_option('server.enableStaticServing', True)
 
 # Import modules from separate files after setting page config
 from citation_validator import run_citation_validator
@@ -49,8 +51,6 @@ def load_model(model_path):
         # Check if model path is a Hugging Face model ID (contains '/')
         is_huggingface_model = '/' in model_path
         
-        st.info(f"Loading model from: {'Hugging Face' if is_huggingface_model else 'local path'} - {model_path}")
-        
         # Load tokenizer and model
         tokenizer = T5Tokenizer.from_pretrained(model_path)
         model = T5ForConditionalGeneration.from_pretrained(model_path)
@@ -59,7 +59,6 @@ def load_model(model_path):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = model.to(device)
         
-        st.success(f"Model successfully loaded from {model_path}!")
         return model, tokenizer, device
         
     except Exception as e:
@@ -135,18 +134,16 @@ def display_home():
     4. View the results
     """)
 
-def main():
-    st.title("Research Paper Optimization Tools")
-    # Initialize NLTK resources
+def load_abstract_generator_resources():
     lemmatizer, stop_words = initialize_nltk()
     
-    # Load model
+    # Find model path
     model_path = find_valid_model_path()
     if model_path:
         model, tokenizer, device = load_model(model_path)
         if model is None:
             st.error("Failed to load the T5 model. Please ensure the model files are in the specified path.")
-            
+            return None, None, None, None, None
     else:
         st.error("No valid model path found. Please specify the path to your fine-tuned T5 model.")
         model_path = st.text_input("Enter model path manually:", "")
@@ -154,9 +151,17 @@ def main():
             model, tokenizer, device = load_model(model_path)
             if model is None:
                 st.error("Model loading failed. Please check the path and try again.")
-                return
+                return None, None, None, None, None
         else:
-            return
+            return None, None, None, None, None
+    
+    return model, tokenizer, device, lemmatizer, stop_words
+
+def main():
+    st.title("Research Paper Optimization Tools")
+    
+    # Initialize NLTK resources (lightweight compared to model loading)
+    lemmatizer, stop_words = initialize_nltk()
     
     # Create tabs for different tools
     tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Abstract Generator", "Image Captioning", "Citation Validator", "Quality Assurance", "Relevance Checker"])
@@ -169,7 +174,11 @@ def main():
     with tab0:
         display_home()
     with tab1:
-        run_abstract_generator(model, tokenizer, device, model_path, lemmatizer, stop_words, uploaded_file=uploaded_file)
+        # Only load model when Abstract Generator tab is selected
+        model, tokenizer, device, abstract_lemmatizer, abstract_stop_words = load_abstract_generator_resources()
+        # Use the loaded resources for the abstract generator tab
+        if model is not None:
+            run_abstract_generator(model, tokenizer, device, find_valid_model_path(), abstract_lemmatizer or lemmatizer, abstract_stop_words or stop_words, uploaded_file=uploaded_file)
     with tab2:
         run_image_captioning(uploaded_file)
     with tab3:
@@ -178,6 +187,10 @@ def main():
         run_quality_assurance(uploaded_file)
     with tab5:
         run_relevance_checker(uploaded_file)
+
+    # Footer
+    st.markdown("---")
+    st.markdown("© 2025 Research Paper Optimizer")
     
     # Display file details if uploaded
     if uploaded_file is not None:
@@ -190,9 +203,6 @@ def main():
             st.sidebar.write(f"- {key}: {value}")
         os.unlink(pdf_path)
     
-    # Footer
-    st.markdown("---")
-    st.markdown("© 2025 Research Paper Optimizer")
 
 if __name__ == "__main__":
     main()

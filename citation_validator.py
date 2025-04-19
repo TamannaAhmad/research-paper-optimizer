@@ -321,61 +321,63 @@ def run_citation_validator(uploaded_file=None):
     if uploaded_file:
         with st.spinner("Processing PDF... This may take a minute."):
             extracted_text = validator.extract_text_from_pdf(uploaded_file)
-            if extracted_text:
-                st.success("PDF processed successfully!")
-                with st.expander("Preview extracted text"):
-                    st.text_area("Extracted Text", extracted_text, height=200)
-                references_section = validator.find_references_section(extracted_text)
-                if references_section:
-                    with st.expander("References Section"):
-                        st.text_area("Extracted References", references_section, height=200)
-                else:
-                    st.warning("No dedicated references section found.")
-                if st.button("Validate Citations"):
-                    with st.spinner("Validating citations..."):
-                        progress_bar = st.progress(0)
-                        report = validator.validate_citations(extracted_text)
-                        progress_bar.progress(100)
-                    if report:
-                        st.subheader("Citation Summary")
-                        col1, col2, col3, col4 = st.columns(4)
-                        col1.metric("Total Citations", report['total_citations'])
-                        col2.metric("Valid Format", report['valid_format_count'])
-                        col3.metric("Found in Databases", report['existing_count'])
-                        col4.metric("Not Found", report['nonexistent_count'])
-                        st.subheader("Citation Details")
-                        citation_data = [
-                            {
-                                'No.': i+1,
-                                'Citation': c['text'][:100] + ('...' if len(c['text']) > 100 else ''),
-                                'Style': c['style'],
-                                'Format Valid': '✅' if c['valid_format'] else '❌',
-                                'Found in Database': '✅' if c.get('exists') else '❌',
-                                'DOI': c.get('doi', '')
-                            }
-                            for i, c in enumerate(report['citations'])
-                        ]
-                        df = pd.DataFrame(citation_data)
-                        st.dataframe(df)
-                        if report['in_text_citations']:
-                            st.subheader("In-text Citations")
-                            st.write(f"Found {len(report['in_text_citations'])} in-text citations.")
-                            with st.expander("View In-text Citations"):
-                                for i, citation in enumerate(report['in_text_citations'][:20]):
-                                    st.markdown(f"**{i+1}.** Context: {citation['context']}")
-                                    st.markdown("---")
-                                if len(report['in_text_citations']) > 20:
-                                    st.write(f"... and {len(report['in_text_citations']) - 20} more.")
-                        st.subheader("Export Report")
-                        csv_data = validator.export_report_to_csv(report)
-                        if csv_data:
-                            csv_b64 = base64.b64encode(csv_data.encode()).decode()
-                            href = f'<a href="data:file/csv;base64,{csv_b64}" download="citation_report.csv">Download CSV Report</a>'
-                            st.markdown(href, unsafe_allow_html=True)
-                else:
-                    st.error("No citations could be extracted and validated.")
-            else:
-                st.error("Could not extract text from the PDF.")
+        if extracted_text:
+            st.success("PDF processed successfully!")
+        else:
+            st.error("Could not extract text from the PDF.")
+        with st.expander("Preview extracted text"):
+            st.text_area("Extracted Text", extracted_text, height=200)
+        references_section = validator.find_references_section(extracted_text)
+        if references_section:
+            with st.expander("References Section"):
+                st.text_area("Extracted References", references_section, height=200)
+        else:
+            st.warning("No dedicated references section found.")
+        if st.button("Validate Citations"):
+            with st.spinner("Validating citations..."):
+                progress_bar = st.progress(0)
+                report = validator.validate_citations(extracted_text)
+                progress_bar.progress(100)
+            if report:
+                st.subheader("Citation Summary")
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Total Citations", report['total_citations'])
+                col2.metric("Valid Format", report['valid_format_count'])
+                col3.metric("Found in Databases", report['existing_count'])
+                col4.metric("Not Found", report['nonexistent_count'])
+                st.subheader("Citation Details")
+                citation_data = [
+                    {
+                        'No.': i+1,
+                        'Citation': c['text'][:100] + ('...' if len(c['text']) > 100 else ''),
+                        'Style': c['style'],
+                        'Format Valid': '✅' if c['valid_format'] else '❌',
+                        'Found in Database': '✅' if c.get('exists') else '❌',
+                        'DOI': c.get('doi', '')
+                    }
+                    for i, c in enumerate(report['citations'])
+                ]
+                df = pd.DataFrame(citation_data)
+                st.dataframe(df)
+                if report['in_text_citations']:
+                    st.subheader("In-text Citations")
+                    st.write(f"Found {len(report['in_text_citations'])} in-text citations.")
+                    with st.expander("View In-text Citations"):
+                        for i, citation in enumerate(report['in_text_citations'][:20]):
+                            st.markdown(f"**{i+1}.** Context: {citation['context']}")
+                            st.markdown("---")
+                        if len(report['in_text_citations']) > 20:
+                            st.write(f"... and {len(report['in_text_citations']) - 20} more.")
+                    st.subheader("Export Report")
+                    csv_data = validator.export_report_to_csv(report)
+                    if csv_data:
+                        csv_b64 = base64.b64encode(csv_data.encode()).decode()
+                        href = f'<a href="data:file/csv;base64,{csv_b64}" download="citation_report.csv">Download CSV Report</a>'
+                        st.markdown(href, unsafe_allow_html=True)
+                    else:
+                        st.error("No citations could be extracted and validated.")
+        else:
+            st.info("Click the button to validate citations.")
     
 
 def main():
