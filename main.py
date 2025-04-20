@@ -6,7 +6,7 @@ import PyPDF2
 import nltk
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from transformers import T5TokenizerFast, T5ForConditionalGeneration
 from pathlib import Path
 import import_ipynb
 
@@ -52,7 +52,7 @@ def load_model(model_path):
         is_huggingface_model = '/' in model_path
         
         # Load tokenizer and model
-        tokenizer = T5Tokenizer.from_pretrained(model_path)
+        tokenizer = T5TokenizerFast.from_pretrained(model_path)
         model = T5ForConditionalGeneration.from_pretrained(model_path)
         
         # Move model to appropriate device
