@@ -4,9 +4,10 @@ pandas
 pdfplumber
 spaCy
 NLTK
-torch
 pymupdf
-transformers == 4.51.3
+torch==2.1.0
+torchvision==0.16.0
+transformers==4.51.3
 datasets
 scikit-learn
 rouge_score
@@ -17,6 +18,5 @@ requests
 PyPDF2
 pathlib
 streamlit
-torchvision
 import-ipynb
 sentencepiece
