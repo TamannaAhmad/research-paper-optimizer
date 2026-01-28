@@ -20,3 +20,4 @@ pathlib
 streamlit
 import-ipynb
 sentencepiece
+altair>=4.2.0

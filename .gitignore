@@ -9,3 +9,4 @@ citation_validation_report.json
 *.pdf
 extracted_figures/
 models/
+model.safetensors
